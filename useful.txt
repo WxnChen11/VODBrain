@@ -1,0 +1,7 @@
+remember to source bin/activate!
+
+1. run analyze_vods.py with date you want (usually about 1 hour)
+2. run download_clips with same date (usually about 1 hour)
+3. go into clips folder and run:
+find 2018-03-11 -type f -name "*.mp4" | xargs -I '{}' mv {} 2018-03-11
+4. tag and copy to hd or whatever
