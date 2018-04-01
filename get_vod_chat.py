@@ -43,7 +43,6 @@ def get_list_from_file(filename):
     for line in f: 
         l.append(line.strip())
 
-    print(l)
     return l
 
 if __name__ == '__main__':

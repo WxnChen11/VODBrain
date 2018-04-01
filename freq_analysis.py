@@ -76,10 +76,14 @@ def analyze_POGCHAMPS_and_download(filename, interval_sec=15, show_plot=False, b
 
     begin_cur_timeframe = 0
     begin_cur_timeframe_champ = 0
+    begin_cur_timeframe_pogchamp = 0
     freq_l = []
     freq_champ = []
+    freq_pogchamp = []
     cur_count = 0
     champ_count = 0
+    pogchamp_count = 0
+    total_count = 0
 
     f = open(filename, "r")
     for line in f:
@@ -92,9 +96,11 @@ def analyze_POGCHAMPS_and_download(filename, interval_sec=15, show_plot=False, b
         msg_lower = msg.lower()
         # print(msg)
         if len(msg) > 0:
+            total_count += 1
+
             pog = float(sum(1 for c in msg if c.isupper()))/(len(msg) - msg.count(' '))
             champ = float(Counter(msg.split()).most_common(1)[0][1])/len(msg.split())
-            pogchamp = ()
+            pogchamp = any(word in msg_lower for word in POGCHAMP_WORDS)
             # print(pog, champ)
 
             # if pog > 0.7 or (champ > 0.5 and len(msg.split()) > 2):
@@ -120,30 +126,46 @@ def analyze_POGCHAMPS_and_download(filename, interval_sec=15, show_plot=False, b
                         freq_champ.append(0)
                     champ_count = 1
                 else:
-                    champ_count += 1    
+                    champ_count += 1   
+
+            if pogchamp:
+                if true_t > begin_cur_timeframe_pogchamp + interval_sec:
+                    freq_pogchamp.append(pogchamp_count)
+                    pogchamp_count = 0
+                    begin_cur_timeframe_pogchamp += interval_sec
+                    while true_t > begin_cur_timeframe_pogchamp + interval_sec:
+                        begin_cur_timeframe_pogchamp += interval_sec
+                        freq_pogchamp.append(0)
+                    pogchamp_count = 1
+                else:
+                    pogchamp_count += 1   
+
+    # avg=5*float(sum(freq_l))/len(freq_l)
+    C = 5
+    avg = C*float(total_count)/(max([len(freq_l), len(freq_champ), len(freq_pogchamp)])*interval_sec)
+    hist = set()
+    top_mom = np.argsort(freq_pogchamp)[::-1] #CHANGE FREQ BELOW (L168) TOO
 
     if show_plot:
         x = np.arange(0, len(freq_l)*interval_sec, interval_sec)
         x_champ = np.arange(0, len(freq_champ)*interval_sec, interval_sec)
+        x_pogchamp = np.arange(0, len(freq_pogchamp)*interval_sec, interval_sec)
         fig = plt.figure()
         plt.plot(x, freq_l)
         plt.plot(x_champ, freq_champ)
-        plt.axhline(y=5*float(sum(freq_l))/len(freq_l), color='r')
+        plt.plot(x_pogchamp, freq_pogchamp)
+        plt.axhline(y=avg, color='r')
         plt.title('POGCHAMP ' + filename)
         plt.ylabel('chat frequency')
         plt.xlabel('time')
         cid = fig.canvas.mpl_connect('button_press_event', onclick)
         plt.show()
 
-    avg=5*float(sum(freq_l))/len(freq_l)
-    hist = set()
-    top_mom = np.argsort(freq_l)[::-1]
-
     downloads = 0
 
     if download:
         for i, x in enumerate(top_mom):
-            freq = freq_l[x]
+            freq = freq_pogchamp[x]
             if freq > avg and freq > interval_sec:
                 l = list(range(x-begin_offset, x+end_offset))
                 if not any(e in hist for e in l):
@@ -181,11 +203,11 @@ def analyze_streamer_POGCHAMPS(name, date, interval_sec=15):
                 analyze_POGCHAMPS_and_download(filename="chats/" + str(date.date()) + '/' + name + "/" + f, interval_sec=interval_sec, show_plot=True, begin_offset=4, end_offset=1, download=False, limit=5)
         
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage: python freq_analysis.py [name] [yyyy-mm-dd]')
+    if len(sys.argv) < 3:
+        print('Usage: python freq_analysis.py [name] [yyyy-mm-dd] [interval]')
 
     else:
         y,m,d = map(int, sys.argv[2].split('-'))
-        analyze_streamer_POGCHAMPS(sys.argv[1], datetime(y,m,d), 5)
+        analyze_streamer_POGCHAMPS(sys.argv[1], datetime(y,m,d), int(sys.argv[3]) if len(sys.argv) > 3 else 15)
 
 
