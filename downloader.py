@@ -98,13 +98,14 @@ def download(vod_id, start, end, output_folder='.', name=''):
     payload = {'nauth': data['token'], 'nauthsig': data['sig'], 'allow_source': True, 'allow_spectre': False, "player": "twitchweb", "p": int(random() * 999999), "allow_audio_only": True, "type": "any"}
     r = requests.get(url, params=payload, headers=common_headers)
     m = m3u8.loads(r.content)
-    print(m.playlists)
     index_url = m.playlists[0].uri
     index = m3u8.load(index_url)
 
     # Get the piece we need
     position = 0
     chunks = []
+    beginning_trim = 0
+    end_trim = 0
 
     for seg in index.segments:
         # Add duration of current segment
@@ -113,6 +114,9 @@ def download(vod_id, start, end, output_folder='.', name=''):
         # Check if we have gotten to the start of the clip
         if position < int(start):
             continue
+
+        if position - int(start) < seg.duration:
+            beginning_trim = position - int(start)
 
         # Extract clip name and byte range
         p = re.match(_chunk_re, seg.absolute_uri)
@@ -129,6 +133,7 @@ def download(vod_id, start, end, output_folder='.', name=''):
 
         # Check if we have reached the end of clip
         if position > int(end):
+            end_trim = position - int(end)
             break
 
     if channel == 'twitch':
@@ -143,6 +148,8 @@ def download(vod_id, start, end, output_folder='.', name=''):
         for c in chunks:
             video_url = "{}?start_offset={}&end_offset={}".format(*c)
             cf.write('%s\n' % video_url)
+
+    print(name, beginning_trim, end_trim)
 
     transport_stream_file_name = name.replace('.mp4', '.ts')
     subprocess.call('wget -i %s -nv -O %s' % ('chunks.txt', transport_stream_file_name), cwd=output_folder, shell=True)

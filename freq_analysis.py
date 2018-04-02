@@ -143,13 +143,46 @@ def analyze_POGCHAMPS_and_download(filename, interval_sec=15, show_plot=False, b
     # avg=5*float(sum(freq_l))/len(freq_l)
     C = 5
     avg = C*float(total_count)/(max([len(freq_l), len(freq_champ), len(freq_pogchamp)])*interval_sec)
+
+    freq_metric = freq_pogchamp
+    
+    top_mom = np.argsort(freq_metric)[::-1] #CHANGE FREQ BELOW (L168) TOO
+
+    top_int = []
     hist = set()
-    top_mom = np.argsort(freq_pogchamp)[::-1] #CHANGE FREQ BELOW (L168) TOO
+    top_count = 0
+
+    for i in top_mom:
+        if i not in hist and freq_metric[i] > interval_sec:
+            top_count += 1
+            t_i = i
+            start=t_i
+            end=t_i
+            hist.add(t_i)
+            while t_i >= 0:
+                t_i -= 1
+                if freq_metric[t_i] > avg:
+                    start = t_i
+                    hist.add(t_i)
+                else:
+                    break
+
+            for j in range(i+1, min(i+6, len(freq_metric))):
+                if freq_metric[j] > 2*avg:
+                    end=j
+                    hist.add(j)
+                else:
+                    break
+
+            if top_count > limit:
+                break
+            top_int.append((start,end))
+
 
     if show_plot:
         x = np.arange(0, len(freq_l)*interval_sec, interval_sec)
         x_champ = np.arange(0, len(freq_champ)*interval_sec, interval_sec)
-        x_pogchamp = np.arange(0, len(freq_pogchamp)*interval_sec, interval_sec)
+        x_pogchamp = np.arange(0, len(freq_metric)*interval_sec, interval_sec)
         fig = plt.figure()
         plt.plot(x, freq_l)
         plt.plot(x_champ, freq_champ)
@@ -163,25 +196,42 @@ def analyze_POGCHAMPS_and_download(filename, interval_sec=15, show_plot=False, b
 
     downloads = 0
 
-    if download:
-        for i, x in enumerate(top_mom):
-            freq = freq_pogchamp[x]
-            if freq > avg and freq > interval_sec:
-                l = list(range(x-begin_offset, x+end_offset))
-                if not any(e in hist for e in l):
-                    for e in l:
-                        hist.add(e)
-                    t = x*interval_sec
-                    begin_t = t-begin_offset*interval_sec
-                    end_t = t+end_offset*interval_sec
-                    args = ['python2','downloader_term.py', '-u', url, '-o', output_folder_root+date+'/'+streamer+'/'+str(vod_id), '-n', str(downloads+1)+'_'+streamer, '-s', str(begin_t), '-e', str(end_t)]
-                    p = subprocess.Popen(args)
-                    p.communicate()
-                    downloads += 1
+    hist = set()
 
-                    if downloads >= limit:
-                        break
-    return freq_l    
+    
+
+    # if download:
+    #     for i, x in enumerate(top_mom):
+    #         freq = freq_pogchamp[x]
+    #         if freq > avg and freq > interval_sec:
+    #             l = list(range(x-begin_offset, x+end_offset))
+    #             if not any(e in hist for e in l):
+    #                 for e in l:
+    #                     hist.add(e)
+    #                 t = x*interval_sec
+    #                 begin_t = t-begin_offset*interval_sec
+    #                 end_t = t+end_offset*interval_sec
+    #                 args = ['python2','downloader_term.py', '-u', url, '-o', output_folder_root+date+'/'+streamer+'/'+str(vod_id), '-n', str(downloads+1)+'_'+streamer, '-s', str(begin_t), '-e', str(end_t)]
+    #                 p = subprocess.Popen(args)
+    #                 p.communicate()
+    #                 downloads += 1
+
+    #                 if downloads >= limit:
+    #                     break
+
+    if download:
+        for start, end in top_int:
+            begin_t = (start-begin_offset)*interval_sec
+            end_t = (end+end_offset)*interval_sec
+            args = ['python2','downloader_term.py', '-u', url, '-o', output_folder_root+date+'/'+streamer+'/'+str(vod_id), '-n', str(downloads+1)+'_'+streamer, '-s', str(begin_t), '-e', str(end_t)]
+            p = subprocess.Popen(args)
+            p.communicate()
+            downloads += 1
+
+            if downloads >= limit:
+                break
+
+    return freq_metric    
 
 def analyze_streamer(name, interval_sec=15):
     l = os.listdir("chats/" + name)
@@ -193,14 +243,14 @@ def analyze_streamer_POGCHAMPS_and_download(name, date, interval_sec=15):
         l = os.listdir("chats/" + str(date.date()) + '/' + name)
         for f in l:
             if f[-4:] == '.log':
-                analyze_POGCHAMPS_and_download(filename="chats/" + str(date.date()) + '/' + name + "/" + f, interval_sec=interval_sec, show_plot=True, begin_offset=2, end_offset=2, download=True, limit=5)
+                analyze_POGCHAMPS_and_download(filename="chats/" + str(date.date()) + '/' + name + "/" + f, interval_sec=interval_sec, show_plot=False, begin_offset=2, end_offset=0, download=True, limit=3)
         
 def analyze_streamer_POGCHAMPS(name, date, interval_sec=15):
     if os.path.isdir("chats/" + str(date.date()) + '/' + name):
         l = os.listdir("chats/" + str(date.date()) + '/' + name)
         for f in l:
             if f[-4:] == '.log':
-                analyze_POGCHAMPS_and_download(filename="chats/" + str(date.date()) + '/' + name + "/" + f, interval_sec=interval_sec, show_plot=True, begin_offset=4, end_offset=1, download=False, limit=5)
+                analyze_POGCHAMPS_and_download(filename="chats/" + str(date.date()) + '/' + name + "/" + f, interval_sec=interval_sec, show_plot=True, begin_offset=2, end_offset=0, download=False, limit=10)
         
 if __name__ == '__main__':
     if len(sys.argv) < 3:

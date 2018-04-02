@@ -1,4 +1,4 @@
-from analyze_vods import get_list_from_file
+from get_vod_chat import get_list_from_file
 import os
 from datetime import datetime
 import api
@@ -11,7 +11,7 @@ def fetch_streamers():
     if os.path.isfile('streamerlists/'+str(date)+'_list.txt'):
         already_fetched = get_list_from_file('streamerlists/'+str(date)+'_list.txt')
 
-    streamers = [ x['channel']['name'] for x in api.streamer_list('Fortnite') ]
+    streamers = [ x['channel']['name'] for x in api.streamer_list('Fortnite', 50) ]
 
     for s in streamers:
         if s not in already_fetched:

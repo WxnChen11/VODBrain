@@ -18,4 +18,7 @@ if __name__ == '__main__':
         print("Usage: python download_clips.py [streamer] [yyyy-mm-dd] [interval]")
     else:
         y,m,d = map(int, sys.argv[2].split('-'))
-        download_clips(sys.argv[1], datetime(y,m,d), int(sys.argv[3]) if len(sys.argv) > 3 else 15)
+        if sys.argv[1] != 'ALL':
+            download_clips(sys.argv[1], datetime(y,m,d), int(sys.argv[3]) if len(sys.argv) > 3 else 15)
+        else:
+            download_all_clips(datetime(y,m,d), int(sys.argv[3]) if len(sys.argv) > 3 else 15)

@@ -38,8 +38,9 @@ def vods(user_id, game, date=None, length=3600):
             yield None
         else:
             for video in fragment['videos']:
-                if video['game'] and game in video['game'].lower() and video['length'] > length and video['viewable'] == 'public' and ((date and datetime.strptime(video['published_at'].split('T')[0], '%Y-%m-%d').date() == date) or not date):
+                # if video['game'] and game in video['game'].lower() and video['length'] > length and video['viewable'] == 'public' and ((date and datetime.strptime(video['published_at'].split('T')[0], '%Y-%m-%d').date() == date) or not date):
+                if video['length'] > length and video['viewable'] == 'public' and ((date and datetime.strptime(video['published_at'].split('T')[0], '%Y-%m-%d').date() == date) or not date):
                     yield video
 
-def streamer_list(game):
-    return get('streams'.format(user_id), {'limit': 100, 'game': game}).json()['streams']
+def streamer_list(game, limit=100):
+    return get('streams'.format(user_id), {'limit': limit, 'game': game}).json()['streams']

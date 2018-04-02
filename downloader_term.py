@@ -12,6 +12,8 @@ from cement.utils.misc import init_defaults
 from pprint import pprint
 from random import random
 
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+
 CLIENT_ID = 'qlj10cyuk2moe38hzmvsbd4zzvooe1o'
 REDIRECT_URL = 'https://ilyalissoboi.github.io/twitch_downloader/landing.html'
 
@@ -128,6 +130,10 @@ try:
         # Get the piece we need
         position = 0
         chunks = []
+        beginning_trim = 0
+        first_cross_start = True
+        end_trim = 0
+
 
         for seg in index.segments:
             # Add duration of current segment
@@ -136,6 +142,10 @@ try:
             # Check if we have gotten to the start of the clip
             if position < int(app.pargs.start):
                 continue
+
+            if first_cross_start:
+                beginning_trim = int(app.pargs.start) - (position-seg.duration)
+                first_cross_start = False
 
             # Extract clip name and byte range
             p = re.match(_chunk_re, seg.absolute_uri)
@@ -152,6 +162,7 @@ try:
 
             # Check if we have reached the end of clip
             if position > int(app.pargs.end):
+                end_trim = position - int(app.pargs.end)
                 break
 
         if channel == 'twitch':
@@ -172,6 +183,20 @@ try:
         subprocess.call('ffmpeg -i %s -bsf:a aac_adtstoasc -c copy %s' % (transport_stream_file_name, app.pargs.name), cwd=app.pargs.output, shell=True)
         os.remove(os.path.join(app.pargs.output, 'chunks.txt'))
         os.remove(os.path.join(app.pargs.output, transport_stream_file_name))
+
+        m, s = divmod(beginning_trim, 60)
+        h, m = divmod(m, 60)
+        s = "%d:%02d:%02d" % (h, m, s)
+
+        m_e, s_e = divmod(int(app.pargs.end)-int(app.pargs.start), 60)
+        h_e, m_e = divmod(m_e, 60)
+        s_e = "%d:%02d:%02d" % (h_e, m_e, s_e)
+
+        trimmed_file_name = app.pargs.name.replace('.mp4', '_trim.mp4')
+        subprocess.call('ffmpeg -ss %s -i %s -t %s %s' % (s, app.pargs.name, s_e, trimmed_file_name), cwd=app.pargs.output, shell=True)
+
+        print("TRIM",app.pargs.name, beginning_trim, end_trim)
+
     else:
         app.log.error("Did not receive a value for 'url' option.")
         app.close(1)
