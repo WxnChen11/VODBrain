@@ -9,6 +9,9 @@ from datetime import datetime
 from get_vod_chat import get_list_from_file
 from analyze_thumbnail import analyze_thumbnail_from_file_and_delete
 from generate_thumbnail import generate_thumb_from_file
+import api
+from scipy import stats
+import math
 
 # output_folder_root = '/Volumes/Expansion\ Drive/jugchug/clips/'
 output_folder_root = './clips/'
@@ -162,13 +165,14 @@ def analyze_POGCHAMPS_and_download(filename, interval_sec=15, show_plot=False, b
     freq_metric = freq_pogchamp
     
     top_mom = np.argsort(freq_metric)[::-1] #CHANGE FREQ BELOW (L168) TOO
+    muted_segments = api.muted_segments(vod_id)
 
     top_int = []
     hist = set()
     top_count = 0
 
     for i in top_mom:
-        if i not in hist and freq_metric[i] > interval_sec:
+        if i not in hist and freq_metric[i] > interval_sec and not in_muted_segments(muted_segments, i*interval_sec):
             if top_count > limit:
                 break
             t_i = i
@@ -189,17 +193,38 @@ def analyze_POGCHAMPS_and_download(filename, interval_sec=15, show_plot=False, b
                     break
 
             for j in range(i, len(freq_metric)-3):
-                if j in hist:
+                if j in hist and j !=i:
                     end = j
                     break
+
                 if freq_metric[j+1] > freq_metric[j]*CONSECUTIVE_FREQ_CONSTANT or freq_metric[j+2] > freq_metric[j]*CONSECUTIVE_FREQ_CONSTANT or freq_metric[j+3] > freq_metric[j]*CONSECUTIVE_FREQ_CONSTANT:
                     end=j
                     hist.add(j)
                 else:
+                    # x = [j*interval_sec]
+                    # y = [freq_metric[j]]
+                    # for p in range(1,4):
+                    #     x.append((j+p)*interval_sec)
+                    #     y.append(freq_metric[j+p])
+                    #     if freq_metric[j+p] < avg/C:
+                    #         break
+
+                    # max_slope = float('-inf')
+                    # for p in range(len(x)-1):
+                    #     slope, intercept, r_value, p_value, std_err = stats.linregress(x[p:p+2],y[p:p+2])
+                    #     if slope > max_slope:
+                    #         max_slope = slope
+                    # slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+
+                    # print("MARK", j*interval_sec, math.atan(slope/freq_metric[j])*180/math.pi, r_value)
+
+                    # if slope < -0.4:
                     end=j
                     hist.add(j)
-                    # print("FREQ===", j)
-                    # print(freq_metric[j], freq_metric[j+1], freq_metric[j+2])
+                    # else:
+                    #     end = j+1
+                    #     hist.add(j+1)
+                    #     hist.add(j)
                     break
 
             for j in range(i, len(freq_metric)-3):
@@ -234,19 +259,32 @@ def analyze_POGCHAMPS_and_download(filename, interval_sec=15, show_plot=False, b
         for start, end in top_int:
             begin_t = (start-begin_offset)*interval_sec
             end_t = (end+end_offset)*interval_sec
-            args = ['python2','downloader_term.py', '-u', url, '-o', output_folder_root+date+'/'+streamer+'/'+str(vod_id), '-n', str(downloads+1)+'_'+streamer, '-s', str(begin_t), '-e', str(end_t)]
-            p = subprocess.Popen(args)
-            p.communicate()
-            fname = str(downloads+1)+'_'+streamer+'_'+str(vod_id)+'_'+str(begin_t)+'_'+str(end_t)
-            thumb_name = generate_thumb_from_file(fname, cwd=output_folder_root[2:]+date+'/'+streamer+'/'+str(vod_id))
-            if analyze_thumbnail_from_file_and_delete(thumb_name, output_folder_root[2:]+date+'/'+streamer+'/'+str(vod_id)):
-                downloads += 1
+            try:
+                args = ['python2','downloader_term.py', '-u', url, '-o', output_folder_root+date+'/'+streamer+'/'+str(vod_id), '-n', str(downloads+1)+'_'+streamer, '-s', str(begin_t), '-e', str(end_t)]
+                p = subprocess.Popen(args)
+                p.communicate()
+                fname = str(downloads+1)+'_'+streamer+'_'+str(vod_id)+'_'+str(begin_t)+'_'+str(end_t)
+                thumb_name = generate_thumb_from_file(fname, cwd=output_folder_root[2:]+date+'/'+streamer+'/'+str(vod_id))
+                if analyze_thumbnail_from_file_and_delete(thumb_name, output_folder_root[2:]+date+'/'+streamer+'/'+str(vod_id)):
+                    downloads += 1
+            except:
+                pass
 
             if downloads >= limit:
                 print("LIMIT LIMIT LIMIT")
                 break
 
     return freq_metric    
+
+def in_muted_segments(muted_segments, time):
+    
+    for seg in muted_segments:
+        offset = seg['offset']
+        dur = seg['duration']
+        if time > offset and time < offset + dur:
+            return True
+
+    return False
 
 def analyze_streamer(name, interval_sec=15):
     l = os.listdir("chats/" + name)
@@ -258,7 +296,7 @@ def analyze_streamer_POGCHAMPS_and_download(name, date, interval_sec=15):
         l = os.listdir("chats/" + str(date.date()) + '/' + name)
         for f in l:
             if f[-4:] == '.log':
-                analyze_POGCHAMPS_and_download(filename="chats/" + str(date.date()) + '/' + name + "/" + f, interval_sec=interval_sec, show_plot=False, begin_offset=1, end_offset=0, download=True, limit=10)
+                analyze_POGCHAMPS_and_download(filename="chats/" + str(date.date()) + '/' + name + "/" + f, interval_sec=interval_sec, show_plot=False, begin_offset=1, end_offset=1, download=True, limit=10)
         
 def analyze_streamer_POGCHAMPS(name, date, interval_sec=15):
     if os.path.isdir("chats/" + str(date.date()) + '/' + name):

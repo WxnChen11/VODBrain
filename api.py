@@ -42,5 +42,8 @@ def vods(user_id, game, date=None, length=3600):
                 if video['length'] > length and video['viewable'] == 'public' and ((date and datetime.strptime(video['published_at'].split('T')[0], '%Y-%m-%d').date() == date) or not date):
                     yield video
 
+def muted_segments(video_id):
+    return get('videos/{}'.format(video_id)).json().get('muted_segments', [])
+
 def streamer_list(game, limit=100):
     return get('streams'.format(user_id), {'limit': limit, 'game': game}).json()['streams']

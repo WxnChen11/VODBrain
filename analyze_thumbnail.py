@@ -147,7 +147,7 @@ def analyze_thumbnail_from_file_and_delete(filename, cwd="clips/"):
     cdst = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
     cdstP = np.copy(cdst)
         
-    linesP = cv2.HoughLinesP(edges, 1, np.pi / 180, 50, None, 150, 50)
+    linesP = cv2.HoughLinesP(edges, 1, np.pi / 180, 50, None, 165, 50)
 
     p1 = (23,8)
     p2 = (190,175)
@@ -207,7 +207,16 @@ def analyze_thumbnail_from_file_and_delete(filename, cwd="clips/"):
                         matched_2.add(3)
                         cv2.line(cdstP, (l[0], l[1]), (l[2], l[3]), (0,0,255), 2, cv2.LINE_AA)
 
-    if len(matched) < 2 and len(matched_2) < 2:
+    if len(matched) + len(matched_2) < 4:
+        print(filename[:-11])
+        files = os.listdir()
+        for f in files:
+            if filename[:-11] in f and '.jpeg' not in f:
+               os.remove(f)
+        os.chdir(owd)
+        return False
+
+    if len(matched) == 2 and len(matched_2) == 2 and ((0 in matched and 1 in matched) or (0 in matched_2 and 1 in matched_2) or (2 in matched and 3 in matched) or (2 in matched_2 and 3 in matched_2)):
         print(filename[:-11])
         files = os.listdir()
         for f in files:
