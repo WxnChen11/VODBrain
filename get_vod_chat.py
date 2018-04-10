@@ -33,8 +33,11 @@ def get_chats_for_vods(name, game, download=False, limit=5, date=None):
                         c += 1
                         break
             c += 1
+    print('===',name,'===')
     print("Total Vods Queried:",c)
     print("Total Vods Downloaded:",c_d)
+
+    return c_d
 
 def get_list_from_file(filename):
 
@@ -46,6 +49,7 @@ def get_list_from_file(filename):
     return l
 
 if __name__ == '__main__':
+    skipped = []
     if len(sys.argv) != 2:
         print("Usage: python get_vod_chat.py yyyy-mm-dd")
     else:
@@ -54,4 +58,12 @@ if __name__ == '__main__':
         streamer_list = get_list_from_file('streamerlists/'+sys.argv[1]+'_list.txt')
         for streamer in streamer_list:
             if streamer[0] != '*':
-                get_chats_for_vods(streamer, 'fortnite', True, 5, date)
+                dl = get_chats_for_vods(streamer, 'fortnite', True, 5, date)
+                if dl == 0:
+                    skipped.append(streamer)
+
+    print('=== SKIPPED ===')
+    for s in skipped:
+        print(s)
+
+    # get_chats_for_vods('valkyrae', 'fortnite', True, 5, date(2018,4,7))

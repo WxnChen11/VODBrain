@@ -7,11 +7,11 @@ def fetch_streamers():
     already_fetched = []
     streamers = []
 
-    date = datetime.now().date()
+    date = datetime.utcnow().date()
     if os.path.isfile('streamerlists/'+str(date)+'_list.txt'):
         already_fetched = get_list_from_file('streamerlists/'+str(date)+'_list.txt')
 
-    streamers = [ x['channel']['name'] for x in api.streamer_list('Fortnite', 50) ]
+    streamers = [ x['channel']['name'] for x in api.streamer_list('Fortnite', 20) ]
 
     for s in streamers:
         if s not in already_fetched:
