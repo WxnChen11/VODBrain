@@ -11,8 +11,8 @@ I wanted to see how easily twitch highlight videos (such as those posted on yout
 
 ## What it does
 
-At set intervals determined by the user, VODBrain fetches the top 50 streamers currently online and analyzes the chat messages from the past elapsed time interval for semantic anomalies (e.g. high-frequency occurences of certain stream-specific keywords). For the detected anomalies, it automatically downloads the relevant video chunks and converts them into the proper output format after trimming.
+At set intervals determined by the user, VODBrain fetches the top 50 streamers currently online and analyzes the chat messages from the past elapsed time interval for semantic anomalies (e.g. high-frequency occurences of certain stream-specific keywords). For the detected anomalies, it automatically downloads the relevant video chunks and converts them into the proper output format after trimming. It is also able to classify clips according to the game that was being played on the stream, by analyzing the video thumbnail.
 
 ## How I built it
 
-VODBrain uses the twitch.tv api (v3), ffmpeg, and a collection of useful python libraries. This project was built in increments over the course of a month during the Winter 2018 semester.
+VODBrain uses the twitch.tv api (v3), ffmpeg, openCV, and a collection of useful python libraries. This project was built in increments over the course of a month during the Winter 2018 semester.
